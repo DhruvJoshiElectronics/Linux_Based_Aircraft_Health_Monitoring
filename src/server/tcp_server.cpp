@@ -90,73 +90,111 @@ bool TCPServer::initialize() {
 // Start Server (Main Execution Loop)
 //------------------------------------------------------------
 void TCPServer::start() {
-
-    // Initialize server components
+    // Initialize server
     if (!initialize()) {
         std::cerr << "[FATAL] Server initialization failed\n";
         return;
     }
-
     std::cout << "[INFO] Waiting for client connections...\n";
 
-    //--------------------------------------------------------
-    // Accept a client connection
-    //--------------------------------------------------------
-    int client_socket = accept(server_fd, nullptr, nullptr);
+    // Continuous server loop
+    while (true) {
 
-    /**
-     * accept():
-     * - Blocks until a client connects
-     * - Returns a NEW socket (client-specific)
-     *
-     * Important:
-     * server_fd → listens
-     * client_socket → communicates
-     */
+        //----------------------------------------------------
+        // Accept incoming client
+        //----------------------------------------------------
+        int client_socket =
+            accept(server_fd, nullptr, nullptr);
 
-    if (client_socket < 0) {
-        std::cerr << "[ERROR] Accept failed\n";
-        close(server_fd);
-        return;
+        /*
+         * accept() is a BLOCKING system call.
+         *
+         * Server sleeps here until:
+         * - a client connects
+         *
+         * Once connection arrives:
+         * - kernel wakes process
+         * - returns client-specific socket
+         */
+
+        if (client_socket < 0) {
+            std::cerr << "[ERROR] Accept failed\n";
+            continue;
+        }
+        std::cout << "\n[INFO] Client connected\n";
+
+        //----------------------------------------------------
+        // Receive telemetry packet
+        //----------------------------------------------------
+        TelemetryPacket packet{};
+
+        ssize_t bytes_received =
+            read(client_socket,
+                 &packet,
+                 sizeof(TelemetryPacket));
+
+        /*
+         * read() copies raw bytes:
+         * Kernel buffer → application memory
+         */
+
+        //----------------------------------------------------
+        // Validate received data
+        //----------------------------------------------------
+        if (bytes_received <= 0) {
+            std::cerr << "[WARNING] Packet receive failed\n";
+        }
+        else if (packet.header != PACKET_HEADER) {
+            std::cerr << "[ERROR] Invalid packet header\n";
+        }
+        else {
+            std::cout
+                << "========== TELEMETRY RECEIVED ==========\n";
+
+            std::cout
+                << "Subsystem ID : "
+                << static_cast<int>(packet.subsystem_id)
+                << "\n";
+
+            std::cout
+                << "Timestamp    : "
+                << packet.timestamp
+                << "\n";
+
+            std::cout
+                << "Param 1      : "
+                << packet.param1
+                << "\n";
+
+            std::cout
+                << "Param 2      : "
+                << packet.param2
+                << "\n";
+
+            std::cout
+                << "Param 3      : "
+                << packet.param3
+                << "\n";
+
+            std::cout
+                << "========================================\n";
+        }
+        close(client_socket);
+        /*
+         * Important:
+         * Only close client socket.
+         *
+         * DO NOT close server_fd here.
+         *
+         * Why?
+         * server_fd is listening socket
+         * needed for future clients.
+         */
     }
 
-    std::cout << "[INFO] Client connected\n";
-
-    // Receive telemetry packet
-    TelemetryPacket packet{};
-    ssize_t bytes_received =read(client_socket,&packet,sizeof(TelemetryPacket));
-
-    /**
-     * read():
-     * - Reads raw bytes from socket
-     * - Blocking call
-     *
-     * Future:
-     * This will be replaced with structured binary packet reading
-     */
-    if (bytes_received <= 0) {
-        std::cerr << "[ERROR] Packet receive failed\n";
-    }else if (packet.header != PACKET_HEADER) {
-        std::cerr << "[ERROR] Invalid packet header\n";
-    }
-    else {
-        std::cout << "[INFO] telemetry packet:\n";
-        std::cout << "  Subsystem ID: " << static_cast<int>(packet.subsystem_id) << "\n";
-        std::cout << "  Timestamp: " << packet.timestamp << "\n";
-        std::cout << "  Param1: " << packet.param1 << "\n";
-        std::cout << "  Param2: " << packet.param2 << "\n";
-        std::cout << "  Param3: " << packet.param3 << "\n";
-    }
-
-    //--------------------------------------------------------
-    // Cleanup
-    //--------------------------------------------------------
-    close(client_socket);
-    close(server_fd);
-
-    /**
-     * Always close sockets:
-     * - Prevent resource leaks
-     * - Avoid port lock issues
-     */
 }
+
+
+
+
+ 
