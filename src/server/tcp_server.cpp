@@ -1,5 +1,5 @@
 #include "server/tcp_server.h"
-
+#include "core/packet_validator.h"
 #include <iostream>
 #include <cstring>        // memset
 #include <unistd.h>       // close()
@@ -141,11 +141,12 @@ void TCPServer::start() {
         //----------------------------------------------------
         // Validate received data
         //----------------------------------------------------
-        if (bytes_received <= 0) {
-            std::cerr << "[WARNING] Packet receive failed\n";
-        }
-        else if (packet.header != PACKET_HEADER) {
-            std::cerr << "[ERROR] Invalid packet header\n";
+        if (!PacketValidator::validate(
+                packet,
+                bytes_received))
+        {
+            close(client_socket);
+            return;
         }
         else {
             std::cout
