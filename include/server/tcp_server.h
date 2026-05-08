@@ -1,6 +1,7 @@
 #ifndef TCP_SERVER_H
 #define TCP_SERVER_H
 #include <cstdint>
+#include <thread>
 #include "protocol/telemetry_packet.h"
 
 /**
@@ -25,7 +26,16 @@ public:
      */
     void start();
 
-    private:
+private:
+
+    /**
+     * @brief Handles telemetry communication
+     *        for one connected client.
+     *
+     * @param client_socket Socket dedicated to client
+     */
+    void handleClient(int client_socket);
+    
     int server_fd;      // File descriptor for server socket
     uint16_t port;      // Listening port
 

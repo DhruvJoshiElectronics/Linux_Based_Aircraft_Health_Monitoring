@@ -122,22 +122,13 @@ void TCPServer::start() {
             continue;
         }
         std::cout << "\n[INFO] Client connected\n";
-
-        //----------------------------------------------------
-        // Receive telemetry packet
-        //----------------------------------------------------
+      
         TelemetryPacket packet{};
 
         ssize_t bytes_received =
-            read(client_socket,
-                 &packet,
-                 sizeof(TelemetryPacket));
-
-        /*
-         * read() copies raw bytes:
-         * Kernel buffer → application memory
-         */
-
+        read(client_socket,
+             &packet,
+             sizeof(TelemetryPacket));
         //----------------------------------------------------
         // Validate received data
         //----------------------------------------------------
@@ -191,8 +182,6 @@ void TCPServer::start() {
          * server_fd is listening socket
          * needed for future clients.
          */
-    }
-
 }
 
 
