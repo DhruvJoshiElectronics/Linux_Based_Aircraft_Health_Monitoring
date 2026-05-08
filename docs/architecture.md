@@ -40,6 +40,13 @@ Subsystem Clients → TCP Server → Data Processing → Alert System → Loggin
 - Passes structured data to processing layer
 
 ---
+TCP Layer
+    ↓
+Binary Protocol Layer
+    ↓
+Validation Layer
+    ↓
+Telemetry Processing Layer
 
 ### 4. Data Processing Layer
 
@@ -115,3 +122,4 @@ Subsystem Clients → TCP Server → Data Processing → Alert System → Loggin
 - Introduce Docker deployment
 - Integrate CI/CD pipeline
 - Extend to hardware-based clients
+
