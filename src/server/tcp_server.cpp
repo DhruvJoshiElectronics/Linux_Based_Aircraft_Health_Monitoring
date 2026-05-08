@@ -87,6 +87,94 @@ bool TCPServer::initialize() {
 }
 
 //------------------------------------------------------------
+// Client Handler Thread
+//------------------------------------------------------------
+void TCPServer::handleClient(int client_socket)
+{
+    std::cout
+        << "[THREAD] Client handler started\n";
+
+    //--------------------------------------------------------
+    // Receive telemetry packet
+    //--------------------------------------------------------
+    TelemetryPacket packet{};
+
+    ssize_t bytes_received =
+        read(client_socket,
+             &packet,
+             sizeof(TelemetryPacket));
+
+    /*
+     * This thread blocks independently.
+     *
+     * Important:
+     * Blocking here does NOT stop:
+     * - main thread
+     * - other client threads
+     */
+
+    //--------------------------------------------------------
+    // Validate packet
+    //--------------------------------------------------------
+    if (bytes_received <= 0) {
+
+        std::cerr
+            << "[WARNING] Packet receive failed\n";
+    }
+
+    else if (packet.header != PACKET_HEADER) {
+
+        std::cerr
+            << "[ERROR] Invalid packet header\n";
+    }
+
+    //--------------------------------------------------------
+    // Print telemetry
+    //--------------------------------------------------------
+    else {
+
+        std::cout
+            << "\n========== TELEMETRY RECEIVED ==========\n";
+
+        std::cout
+            << "Subsystem ID : "
+            << static_cast<int>(packet.subsystem_id)
+            << "\n";
+
+        std::cout
+            << "Timestamp    : "
+            << packet.timestamp
+            << "\n";
+
+        std::cout
+            << "Param 1      : "
+            << packet.param1
+            << "\n";
+
+        std::cout
+            << "Param 2      : "
+            << packet.param2
+            << "\n";
+
+        std::cout
+            << "Param 3      : "
+            << packet.param3
+            << "\n";
+
+        std::cout
+            << "========================================\n";
+    }
+
+    //--------------------------------------------------------
+    // Close client socket
+    //--------------------------------------------------------
+    close(client_socket);
+
+    std::cout
+        << "[THREAD] Client disconnected\n";
+}
+
+//------------------------------------------------------------
 // Start Server (Main Execution Loop)
 //------------------------------------------------------------
 void TCPServer::start() {
@@ -123,75 +211,24 @@ void TCPServer::start() {
         }
         std::cout << "\n[INFO] Client connected\n";
 
-        //----------------------------------------------------
-        // Receive telemetry packet
-        //----------------------------------------------------
-        TelemetryPacket packet{};
-
-        ssize_t bytes_received =
-            read(client_socket,
-                 &packet,
-                 sizeof(TelemetryPacket));
+        /*
+        * Create worker thread
+        *
+        * Thread executes:
+        * handleClient(client_socket)
+        */
+        std::thread client_thread(&TCPServer::handleClient,this,client_socket);
 
         /*
-         * read() copies raw bytes:
-         * Kernel buffer → application memory
-         */
-
-        //----------------------------------------------------
-        // Validate received data
-        //----------------------------------------------------
-        if (bytes_received <= 0) {
-            std::cerr << "[WARNING] Packet receive failed\n";
-        }
-        else if (packet.header != PACKET_HEADER) {
-            std::cerr << "[ERROR] Invalid packet header\n";
-        }
-        else {
-            std::cout
-                << "========== TELEMETRY RECEIVED ==========\n";
-
-            std::cout
-                << "Subsystem ID : "
-                << static_cast<int>(packet.subsystem_id)
-                << "\n";
-
-            std::cout
-                << "Timestamp    : "
-                << packet.timestamp
-                << "\n";
-
-            std::cout
-                << "Param 1      : "
-                << packet.param1
-                << "\n";
-
-            std::cout
-                << "Param 2      : "
-                << packet.param2
-                << "\n";
-
-            std::cout
-                << "Param 3      : "
-                << packet.param3
-                << "\n";
-
-            std::cout
-                << "========================================\n";
-        }
-        close(client_socket);
-        /*
-         * Important:
-         * Only close client socket.
-         *
-         * DO NOT close server_fd here.
-         *
-         * Why?
-         * server_fd is listening socket
-         * needed for future clients.
-         */
+        * Detach thread
+        *
+        * Why detach?
+        * - Main thread does NOT wait
+        * - Worker runs independently
+        * - Server can accept more clients immediately
+        */
+        client_thread.detach();
     }
-
 }
 
 
