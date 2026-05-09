@@ -10,6 +10,8 @@ add_executable(server
     src/server/main.cpp
     src/server/tcp_server.cpp
     src/core/packet_validator.cpp
+    src/core/subsystem_parser.cpp
+    src/core/parameter_interpreter.cpp
 )
 add_executable(client
     src/client/simple_client.cpp

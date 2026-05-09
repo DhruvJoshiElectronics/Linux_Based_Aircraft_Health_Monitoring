@@ -4,6 +4,8 @@
 #include <cstring>        // memset
 #include <unistd.h>       // close()
 #include <arpa/inet.h>    // socket, bind, listen, accept
+#include "core/subsystem_parser.h"
+#include "core/parameter_interpreter.h"
 
 //------------------------------------------------------------
 // Constructor
@@ -144,8 +146,8 @@ void TCPServer::start() {
                 << "========== TELEMETRY RECEIVED ==========\n";
 
             std::cout
-                << "Subsystem ID : "
-                << static_cast<int>(packet.subsystem_id)
+                << "Subsystem    : "
+                << SubsystemParser::getSubsystemName(packet.subsystem_id)
                 << "\n";
 
             std::cout
@@ -153,19 +155,34 @@ void TCPServer::start() {
                 << packet.timestamp
                 << "\n";
 
+            // Get engineering parameter interpretation
+            auto parameter_info =
+                ParameterInterpreter::getParameterInfo(
+                    packet.subsystem_id);
+
+            // Print engineering-aware telemetry
             std::cout
-                << "Param 1      : "
+                << parameter_info[0].name
+                << " : "
                 << packet.param1
+                << " "
+                << parameter_info[0].unit
                 << "\n";
 
             std::cout
-                << "Param 2      : "
+                << parameter_info[1].name
+                << " : "
                 << packet.param2
+                << " "
+                << parameter_info[1].unit
                 << "\n";
 
             std::cout
-                << "Param 3      : "
+                << parameter_info[2].name
+                << " : "
                 << packet.param3
+                << " "
+                << parameter_info[2].unit
                 << "\n";
 
             std::cout
