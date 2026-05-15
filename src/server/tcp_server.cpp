@@ -18,6 +18,11 @@ TCPServer::TCPServer(uint16_t port)
 //------------------------------------------------------------
 bool TCPServer::initialize() {
 
+    // Allow immediate port reuse
+    // SO_REUSEADDR allows server to restart immediately after shutdown
+    int opt = 1;
+    setsockopt(server_fd,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(opt));
+
     //--------------------------------------------------------
     // 1. Create Socket
     //--------------------------------------------------------
@@ -90,74 +95,69 @@ bool TCPServer::initialize() {
 
 void TCPServer::handleClient(int client_socket){
 
-    TelemetryPacket packet{};
-    
-    ssize_t bytes_received =
-    read(client_socket,
-            &packet,
-            sizeof(TelemetryPacket));
-            
-            /*
-    * read() copies raw bytes:
-    * Kernel buffer → application memory
-    */
-
-//----------------------------------------------------
-// Validate received data
-//----------------------------------------------------
-    if (!PacketValidator::validate(
-        packet,
-        bytes_received))
+    while (true)
     {
-        close(client_socket);
-        return;
-    }
-else {
-    std::cout
-    << "========== TELEMETRY RECEIVED ==========\n";
-    
-    std::cout
-    << "Subsystem    : "
-    << SubsystemParser::getSubsystemName(packet.subsystem_id)
-    << "\n";
-    
-    std::cout
-    << "Timestamp    : "
-    << packet.timestamp
-    << "\n";
-    
-    // Get engineering parameter interpretation
-    auto parameter_info =
-    ParameterInterpreter::getParameterInfo(
-            packet.subsystem_id);
+        TelemetryPacket packet{};
+        ssize_t bytes_received =read(client_socket,&packet,sizeof(TelemetryPacket));
+        if (bytes_received == 0)
+        {
+            std::cout << "[INFO] Client disconnected\n";
+            break;
+        }
+        // When Client disconnects, read() returns 0 bytes not -1.
+        // Validate received data
+        if (!PacketValidator::validate(packet,bytes_received))
+        {
+            close(client_socket);
+            return;
+        }
+        else {
+            std::cout
+            << "========== TELEMETRY RECEIVED ==========\n";
+            
+            std::cout
+            << "Subsystem    : "
+            << SubsystemParser::getSubsystemName(packet.subsystem_id)
+            << "\n";
+            
+            std::cout
+            << "Timestamp    : "
+            << packet.timestamp
+            << "\n";
+            
+            // Get engineering parameter interpretation
+            auto parameter_info =
+            ParameterInterpreter::getParameterInfo(
+                    packet.subsystem_id);
 
-            // Print engineering-aware telemetry
-            std::cout
-            << parameter_info[0].name
-            << " : "
-            << packet.param1
-            << " "
-            << parameter_info[0].unit
-            << "\n";
-            
-            std::cout
-            << parameter_info[1].name
-            << " : "
-            << packet.param2
-            << " "
-            << parameter_info[1].unit
-            << "\n";
-            
-            std::cout
-        << parameter_info[2].name
-        << " : "
-        << packet.param3
-        << " "
-        << parameter_info[2].unit
-        << "\n";
-        
-        std::cout
-        << "========================================\n";
+                    // Print engineering-aware telemetry
+                    std::cout
+                    << parameter_info[0].name
+                    << " : "
+                    << packet.param1
+                    << " "
+                    << parameter_info[0].unit
+                    << "\n";
+                    
+                    std::cout
+                    << parameter_info[1].name
+                    << " : "
+                    << packet.param2
+                    << " "
+                    << parameter_info[1].unit
+                    << "\n";
+                    
+                    std::cout
+                << parameter_info[2].name
+                << " : "
+                << packet.param3
+                << " "
+                << parameter_info[2].unit
+                << "\n";
+                
+                std::cout
+                << "========================================\n";
+            }
     }
     close(client_socket);
     /*

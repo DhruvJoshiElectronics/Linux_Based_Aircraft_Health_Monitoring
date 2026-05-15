@@ -3,6 +3,8 @@
 #include <arpa/inet.h>      // socket APIs
 #include <cstring>          // strlen
 #include <ctime>
+#include <thread>
+#include <chrono>
 #include "protocol/telemetry_packet.h"
 
 /**
@@ -119,35 +121,48 @@ int main() {
     //--------------------------------------------------------
     // Send binary packet
     //--------------------------------------------------------
-    ssize_t bytes_sent = 0;
-
-    //Partial packet simulation
-    if (test_mode == TestMode::PARTIAL_PACKET)
-    {
-        bytes_sent = send(sock,&packet,8,0);
-
-        /*
-        * Intentionally send incomplete packet
-        * to test size validation.
-        */
-    }
-    else
-    {
-        bytes_sent =send(sock, &packet, sizeof(packet), 0);
-    }
-
-    if (bytes_sent > 0) {
-    std::cout << "[INFO] Telemetry packet sent ("
-              << bytes_sent
-              << " bytes)\n";
-    }
-    else {
-        std::cerr << "[ERROR] Packet transmission failed\n";
-    }
-
     //--------------------------------------------------------
+    while (true)
+    {
+        //----------------------------------------------------
+        // Update timestamp dynamically
+        //----------------------------------------------------
+        packet.timestamp =
+            static_cast<uint32_t>(std::time(nullptr));
+
+        //----------------------------------------------------
+        // Send telemetry packet
+        //----------------------------------------------------
+        ssize_t bytes_sent =
+            send(sock,
+                &packet,
+                sizeof(packet),
+                0);
+
+        //----------------------------------------------------
+        // Validate transmission
+        //----------------------------------------------------
+        if (bytes_sent <= 0)
+        {
+            std::cerr
+                << "[ERROR] Telemetry transmission failed\n";
+
+            break;
+        }
+
+        std::cout
+            << "[INFO] Telemetry packet streamed ("
+            << bytes_sent
+            << " bytes)\n";
+
+        //----------------------------------------------------
+        // Simulate telemetry rate
+        //----------------------------------------------------
+        std::this_thread::sleep_for(
+            std::chrono::seconds(1));
+    }
+
     // 5. Close socket
-    //--------------------------------------------------------
     close(sock);
     return 0;
 }
