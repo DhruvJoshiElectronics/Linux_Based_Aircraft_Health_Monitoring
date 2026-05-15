@@ -88,7 +88,90 @@ bool TCPServer::initialize() {
     return true;
 }
 
-//------------------------------------------------------------
+void TCPServer::handleClient(int client_socket){
+
+    TelemetryPacket packet{};
+    
+    ssize_t bytes_received =
+    read(client_socket,
+            &packet,
+            sizeof(TelemetryPacket));
+            
+            /*
+    * read() copies raw bytes:
+    * Kernel buffer → application memory
+    */
+
+//----------------------------------------------------
+// Validate received data
+//----------------------------------------------------
+    if (!PacketValidator::validate(
+        packet,
+        bytes_received))
+    {
+        close(client_socket);
+        return;
+    }
+else {
+    std::cout
+    << "========== TELEMETRY RECEIVED ==========\n";
+    
+    std::cout
+    << "Subsystem    : "
+    << SubsystemParser::getSubsystemName(packet.subsystem_id)
+    << "\n";
+    
+    std::cout
+    << "Timestamp    : "
+    << packet.timestamp
+    << "\n";
+    
+    // Get engineering parameter interpretation
+    auto parameter_info =
+    ParameterInterpreter::getParameterInfo(
+            packet.subsystem_id);
+
+            // Print engineering-aware telemetry
+            std::cout
+            << parameter_info[0].name
+            << " : "
+            << packet.param1
+            << " "
+            << parameter_info[0].unit
+            << "\n";
+            
+            std::cout
+            << parameter_info[1].name
+            << " : "
+            << packet.param2
+            << " "
+            << parameter_info[1].unit
+            << "\n";
+            
+            std::cout
+        << parameter_info[2].name
+        << " : "
+        << packet.param3
+        << " "
+        << parameter_info[2].unit
+        << "\n";
+        
+        std::cout
+        << "========================================\n";
+    }
+    close(client_socket);
+    /*
+    * Important:
+    * Only close client socket.
+    *
+    * DO NOT close server_fd here.
+    *
+    * Why?
+    * server_fd is listening socket
+    * needed for future clients.
+    */
+}
+
 // Start Server (Main Execution Loop)
 //------------------------------------------------------------
 void TCPServer::start() {
@@ -124,81 +207,13 @@ void TCPServer::start() {
             continue;
         }
         std::cout << "\n[INFO] Client connected\n";
-      
-        TelemetryPacket packet{};
 
-        ssize_t bytes_received =
-        read(client_socket,
-             &packet,
-             sizeof(TelemetryPacket));
-        //----------------------------------------------------
-        // Validate received data
-        //----------------------------------------------------
-        if (!PacketValidator::validate(
-                packet,
-                bytes_received))
-        {
-            close(client_socket);
-            return;
-        }
-        else {
-            std::cout
-                << "========== TELEMETRY RECEIVED ==========\n";
+        std::thread client_thread(&TCPServer::handleClient, this, client_socket);
 
-            std::cout
-                << "Subsystem    : "
-                << SubsystemParser::getSubsystemName(packet.subsystem_id)
-                << "\n";
+        client_thread.detach();
 
-            std::cout
-                << "Timestamp    : "
-                << packet.timestamp
-                << "\n";
+    }
 
-            // Get engineering parameter interpretation
-            auto parameter_info =
-                ParameterInterpreter::getParameterInfo(
-                    packet.subsystem_id);
-
-            // Print engineering-aware telemetry
-            std::cout
-                << parameter_info[0].name
-                << " : "
-                << packet.param1
-                << " "
-                << parameter_info[0].unit
-                << "\n";
-
-            std::cout
-                << parameter_info[1].name
-                << " : "
-                << packet.param2
-                << " "
-                << parameter_info[1].unit
-                << "\n";
-
-            std::cout
-                << parameter_info[2].name
-                << " : "
-                << packet.param3
-                << " "
-                << parameter_info[2].unit
-                << "\n";
-
-            std::cout
-                << "========================================\n";
-        }
-        close(client_socket);
-        /*
-         * Important:
-         * Only close client socket.
-         *
-         * DO NOT close server_fd here.
-         *
-         * Why?
-         * server_fd is listening socket
-         * needed for future clients.
-         */
 }
 
 

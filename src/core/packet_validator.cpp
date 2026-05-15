@@ -8,7 +8,7 @@ bool PacketValidator::validate(const TelemetryPacket& packet,ssize_t bytes_recei
     if (bytes_received != sizeof(TelemetryPacket))
     {
         std::cerr
-            << "[VALIDATOR] Invalid packet size\n";
+            << "[VALIDATOR] Packet size mismatch detected\n";
 
         return false;
     }
@@ -26,7 +26,7 @@ bool PacketValidator::validate(const TelemetryPacket& packet,ssize_t bytes_recei
      if (packet.header != PACKET_HEADER)
     {
         std::cerr
-            << "[VALIDATOR] Invalid packet header\n";
+            << "[VALIDATOR] Invalid synchronization header\n";
 
         return false;
     }
@@ -43,7 +43,7 @@ bool PacketValidator::validate(const TelemetryPacket& packet,ssize_t bytes_recei
       if (packet.subsystem_id < 1 || packet.subsystem_id > 8)
     {
         std::cerr
-            << "[VALIDATOR] Invalid subsystem ID\n";
+            << "[VALIDATOR] Unknown subsystem identifier\n";
 
         return false;
     }

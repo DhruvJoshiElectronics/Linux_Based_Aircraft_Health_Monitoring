@@ -27,7 +27,6 @@ public:
     void start();
 
 private:
-
     /**
      * @brief Handles telemetry communication
      *        for one connected client.
