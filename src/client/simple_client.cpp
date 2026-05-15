@@ -5,7 +5,25 @@
 #include <ctime>
 #include "protocol/telemetry_packet.h"
 
+/**
+ * ------------------------------------------------------------
+ * TestMode
+ * ------------------------------------------------------------
+ *
+ * Used for protocol robustness testing.
+ */
+enum class TestMode
+{
+    NORMAL,
+    INVALID_HEADER,
+    INVALID_SUBSYSTEM,
+    PARTIAL_PACKET
+};
+
 int main() {
+
+    TestMode test_mode = TestMode::NORMAL;
+
      //--------------------------------------------------------
     // 1. Create socket
     //--------------------------------------------------------
@@ -55,8 +73,34 @@ int main() {
     packet.header = PACKET_HEADER;
 
     // Subsystem type
-    packet.subsystem_id =
-        static_cast<uint8_t>(SubsystemID::PROPULSION);
+    packet.subsystem_id = static_cast<uint8_t>(SubsystemID::PROPULSION);
+
+    //Fault Injection 
+    switch (test_mode)
+    {
+        //----------------------------------------------------
+        // Invalid synchronization header
+        //----------------------------------------------------
+        case TestMode::INVALID_HEADER:
+
+            packet.header = 0x55;
+            break;
+
+        //----------------------------------------------------
+        // Invalid subsystem ID
+        //----------------------------------------------------
+        case TestMode::INVALID_SUBSYSTEM:
+
+            packet.subsystem_id = 99;
+            break;
+
+        //----------------------------------------------------
+        // Normal packet
+        //----------------------------------------------------
+        default:
+            break;
+    }
+
 
     // Current Unix timestamp
     packet.timestamp = static_cast<uint32_t>(std::time(nullptr));
@@ -75,7 +119,22 @@ int main() {
     //--------------------------------------------------------
     // Send binary packet
     //--------------------------------------------------------
-    ssize_t bytes_sent =send(sock,&packet,sizeof(packet),0);
+    ssize_t bytes_sent = 0;
+
+    //Partial packet simulation
+    if (test_mode == TestMode::PARTIAL_PACKET)
+    {
+        bytes_sent = send(sock,&packet,8,0);
+
+        /*
+        * Intentionally send incomplete packet
+        * to test size validation.
+        */
+    }
+    else
+    {
+        bytes_sent =send(sock, &packet, sizeof(packet), 0);
+    }
 
     if (bytes_sent > 0) {
     std::cout << "[INFO] Telemetry packet sent ("
