@@ -64,3 +64,55 @@ Refer to `/docs/architecture.md` for detailed system design.
 - Docker-based deployment
 - CI/CD pipeline with automated testing
 - Web dashboard for visualization
+
+# Current Features
+
+## Networking Layer
+
+- Linux TCP socket programming
+- Persistent TCP sessions
+- IPv4 communication
+- Real-time telemetry streaming
+- SO_REUSEADDR support
+
+---
+
+## Concurrent Backend Architecture
+
+- Thread-per-client architecture
+- Continuous accept loop
+- Detached worker threads
+- Persistent telemetry receive loops
+
+---
+
+## Binary Telemetry Protocol
+
+Custom binary packet structure:
+
+```cpp
+struct TelemetryPacket
+{
+    uint8_t  header;
+    uint8_t  subsystem_id;
+    uint32_t timestamp;
+
+    float param1;
+    float param2;
+    float param3;
+};
+
+## Build & Run Instructions
+
+### Clone Repository
+```bash
+git clone <your-repository-link>
+cd Linux_Based_Aircraft_Health_Monitoring
+
+mkdir build
+cd build
+cmake ..
+cmake --build .
+./server
+./client
+
