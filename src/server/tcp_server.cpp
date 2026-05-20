@@ -4,8 +4,10 @@
 #include <cstring>        // memset
 #include <unistd.h>       // close()
 #include <arpa/inet.h>    // socket, bind, listen, accept
+#include "logging/logger.h"
 #include "core/subsystem_parser.h"
 #include "core/parameter_interpreter.h"
+#include "monitoring/alert_engine.h"
 
 //------------------------------------------------------------
 // Constructor
@@ -112,52 +114,21 @@ void TCPServer::handleClient(int client_socket){
             return;
         }
         else {
-            std::cout
-            << "========== TELEMETRY RECEIVED ==========\n";
-            
-            std::cout
-            << "Subsystem    : "
-            << SubsystemParser::getSubsystemName(packet.subsystem_id)
-            << "\n";
-            
-            std::cout
-            << "Timestamp    : "
-            << packet.timestamp
-            << "\n";
-            
+            packet.timestamp = static_cast<uint32_t>(std::time(nullptr));
+            Logger::logTelemetry(packet);
+            std::cout << "========== TELEMETRY RECEIVED ==========\n";
+            std::cout << "Subsystem    : " << SubsystemParser::getSubsystemName(packet.subsystem_id) << "\n";
+            std::cout << "Timestamp    : " << packet.timestamp << "\n";
             // Get engineering parameter interpretation
-            auto parameter_info =
-            ParameterInterpreter::getParameterInfo(
-                    packet.subsystem_id);
+            auto parameter_info = ParameterInterpreter::getParameterInfo(packet.subsystem_id);
 
-                    // Print engineering-aware telemetry
-                    std::cout
-                    << parameter_info[0].name
-                    << " : "
-                    << packet.param1
-                    << " "
-                    << parameter_info[0].unit
-                    << "\n";
-                    
-                    std::cout
-                    << parameter_info[1].name
-                    << " : "
-                    << packet.param2
-                    << " "
-                    << parameter_info[1].unit
-                    << "\n";
-                    
-                    std::cout
-                << parameter_info[2].name
-                << " : "
-                << packet.param3
-                << " "
-                << parameter_info[2].unit
-                << "\n";
-                
-                std::cout
-                << "========================================\n";
-            }
+            // Print engineering-aware telemetry
+            std::cout << parameter_info[0].name << " : "<< packet.param1 << " " << parameter_info[0].unit << "\n";
+            std::cout << parameter_info[1].name << " : "<< packet.param2 << " " << parameter_info[1].unit << "\n";        
+            std::cout << parameter_info[2].name << " : "<< packet.param3 << " " << parameter_info[2].unit << "\n";
+            std::cout << "========================================\n";
+            AlertEngine::analyze(packet);
+        }
     }
     close(client_socket);
     /*

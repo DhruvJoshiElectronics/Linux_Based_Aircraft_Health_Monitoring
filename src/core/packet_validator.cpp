@@ -47,9 +47,6 @@ bool PacketValidator::validate(const TelemetryPacket& packet,ssize_t bytes_recei
 
         return false;
     }
-    /*
-     * Prevents undefined subsystem processing.
-     */
 
      //Packet is valid
     return true;

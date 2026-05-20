@@ -12,6 +12,8 @@ add_executable(server
     src/core/packet_validator.cpp
     src/core/subsystem_parser.cpp
     src/core/parameter_interpreter.cpp
+    src/monitoring/alert_engine.cpp
+    src/logging/logger.cpp
 )
 add_executable(client
     src/client/simple_client.cpp

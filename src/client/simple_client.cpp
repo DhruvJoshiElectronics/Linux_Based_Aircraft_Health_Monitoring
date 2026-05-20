@@ -5,6 +5,7 @@
 #include <ctime>
 #include <thread>
 #include <chrono>
+#include <cmath>
 #include "protocol/telemetry_packet.h"
 
 /**
@@ -74,9 +75,6 @@ int main() {
     // Packet validation header
     packet.header = PACKET_HEADER;
 
-    // Subsystem type
-    packet.subsystem_id = static_cast<uint8_t>(SubsystemID::PROPULSION);
-
     //Fault Injection 
     switch (test_mode)
     {
@@ -102,46 +100,50 @@ int main() {
         default:
             break;
     }
+    float t = 0.0f;    //Time variable 
+    bool propulsion_mode = false;
 
 
-    // Current Unix timestamp
-    packet.timestamp = static_cast<uint32_t>(std::time(nullptr));
-
-    /*
-    * Example Propulsion System Parameters
-    *
-    * param1 → Thrust
-    * param2 → EGT
-    * param3 → Efficiency
-    */
-    packet.param1 = 12500.5f;
-    packet.param2 = 640.2f;
-    packet.param3 = 0.87f;
-
-    //--------------------------------------------------------
     // Send binary packet
-    //--------------------------------------------------------
-    //--------------------------------------------------------
     while (true)
     {
-        //----------------------------------------------------
-        // Update timestamp dynamically
-        //----------------------------------------------------
-        packet.timestamp =
-            static_cast<uint32_t>(std::time(nullptr));
+        if (propulsion_mode)
+        {
+            packet.subsystem_id =static_cast<uint8_t>(SubsystemID::PROPULSION);
+            // Thrust
+            packet.param1 =12500.0f +500.0f * std::sin(0.2f * t);
+            // EGT
+            packet.param2 =710.0f +15.0f * std::sin(0.5f * t);
+            // Efficiency
+            packet.param3 =0.87f +0.01f * std::sin(0.1f * t);
+        }
+        else
+        {
+            packet.subsystem_id =
+                static_cast<uint8_t>(
+                    SubsystemID::HYDRAULIC);
 
-        //----------------------------------------------------
+            // Pressure
+            packet.param1 =
+                3000.0f +
+                200.0f * std::sin(0.3f * t);
+
+            // Flow Rate
+            packet.param2 =
+                45.0f +
+                5.0f * std::sin(0.4f * t);
+
+            // Fluid Temperature
+            packet.param3 =
+                75.0f +
+                8.0f * std::sin(0.2f * t);
+        }
+
+
         // Send telemetry packet
-        //----------------------------------------------------
-        ssize_t bytes_sent =
-            send(sock,
-                &packet,
-                sizeof(packet),
-                0);
+        ssize_t bytes_sent =send(sock,&packet,sizeof(packet),0);
 
-        //----------------------------------------------------
         // Validate transmission
-        //----------------------------------------------------
         if (bytes_sent <= 0)
         {
             std::cerr
@@ -150,16 +152,11 @@ int main() {
             break;
         }
 
-        std::cout
-            << "[INFO] Telemetry packet streamed ("
-            << bytes_sent
-            << " bytes)\n";
-
-        //----------------------------------------------------
+        std::cout << "[INFO] Telemetry packet streamed (" << bytes_sent << " bytes)\n";
+        
         // Simulate telemetry rate
-        //----------------------------------------------------
-        std::this_thread::sleep_for(
-            std::chrono::seconds(1));
+        t += 0.1f;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     // 5. Close socket
