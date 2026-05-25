@@ -14,6 +14,7 @@ add_executable(server
     src/core/parameter_interpreter.cpp
     src/monitoring/alert_engine.cpp
     src/logging/logger.cpp
+    src/config/config_manager.cpp
 )
 add_executable(client
     src/client/simple_client.cpp

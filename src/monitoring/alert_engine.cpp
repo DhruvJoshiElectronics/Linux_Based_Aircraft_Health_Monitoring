@@ -2,6 +2,7 @@
 #include "monitoring/alert_engine.h"
 #include "logging/logger.h"
 #include <iostream>
+#include "config/config_manager.h"
 
 void AlertEngine::analyze(const TelemetryPacket& packet)
 {
@@ -32,7 +33,7 @@ void AlertEngine::analyzePropulsion(const TelemetryPacket& packet)
 
     
     // High EGT Detection
-    if (egt > 700.0f)
+    if (egt >ConfigManager::getValue("PROPULSION_EGT_LIMIT"))
     {
         std::string warning = "[WARNING] High propulsion EGT detected";
         std::cout << warning << "\n";

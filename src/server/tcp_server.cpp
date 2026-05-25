@@ -8,7 +8,7 @@
 #include "core/subsystem_parser.h"
 #include "core/parameter_interpreter.h"
 #include "monitoring/alert_engine.h"
-
+#include "config/config_manager.h"
 //------------------------------------------------------------
 // Constructor
 //------------------------------------------------------------
@@ -152,6 +152,11 @@ void TCPServer::start() {
         return;
     }
     std::cout << "[INFO] Waiting for client connections...\n";
+    
+    if (!ConfigManager::loadConfig("../threshold.cfg"))
+    {
+        return;
+    }
 
     // Continuous server loop
     while (true) {
